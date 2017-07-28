@@ -1,0 +1,21 @@
+{
+  "name": "sharepoint-rest",
+  "version": "1.0.0",
+  "description": "Angular service for accessing SharePoint Lists using REST API",
+  "main": "src/sharepoint-rest.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VijayaSankarN/sharepoint-rest.git"
+  },
+  "keywords": [
+    "SharePoint",
+    "AngularJS",
+    "REST"
+  ],
+  "author": "Vijaya Sankar N <sankar.animation@gmail.com> (http://vijayasankar.me.pn)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/VijayaSankarN/sharepoint-rest/issues"
+  },
+  "homepage": "https://github.com/VijayaSankarN/sharepoint-rest#readme"
+}

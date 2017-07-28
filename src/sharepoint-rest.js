@@ -1,34 +1,57 @@
 (function() {
-    angular.module('sharepoint.rest').factory('sharepointRESTService', sharepointRESTService)
+    angular.module('sharepoint.rest', []).factory('sharepointRESTService', sharepointRESTService)
     sharepointRESTService.$inject = ['$q', '$http'];
 
     function sharepointRESTService($q, $http) {
         var factoryUtil = {};
 
-        var domain_url = "https://company_name.sharepoint.com/sites/site_name";
+        var domain_url = null;
+
+        factoryUtil.getDomainURL = function() {
+            var deferred = $q.defer();
+
+            if(domain_url == null) {
+                $http({
+                    url: "_api/contextinfo",
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result.d.GetContextWebInformation.WebFullUrl);
+                });
+            } else {
+                deferred.resolve(domain_url);
+            }
+
+            return deferred.promise;
+        }
 
         // HTTP GET
         factoryUtil.getListItems = function(list_name, filters) {
-            var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
-
-            if (!angular.isUndefined(filters)) {
-                url += factoryUtil.build_filters(filters)
-            }
-
             var deferred = $q.defer();
-            $http({
-                url: url,
-                method: "GET",
-                headers: {
-                    "accept": "application/json;odata=verbose",
-                    "content-Type": "application/json;odata=verbose"
+            factoryUtil.getDomainURL().then(function(domain_url) {
+                var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
+
+                if (!angular.isUndefined(filters)) {
+                    url += factoryUtil.build_filters(filters)
                 }
-            }).success(function(result) {
-                deferred.resolve(result.d.results);
-            }).error(function(result, status) {
-                deferred.reject({
-                    error: result,
-                    status: status
+
+                $http({
+                    url: url,
+                    method: "GET",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result.d.results);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
                 });
             });
             return deferred.promise;

@@ -5,60 +5,35 @@
     function sharepointRESTService($q, $http) {
         var factoryUtil = {};
 
-        var domain_url = null;
+        // HTTP GET
+        factoryUtil.getListItems = function(domain_url, list_name, filters) {
+            var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
 
-        factoryUtil.getDomainURL = function() {
-            var deferred = $q.defer();
-
-            if(domain_url == null) {
-                $http({
-                    url: "_api/contextinfo",
-                    method: "POST",
-                    headers: {
-                        "accept": "application/json;odata=verbose",
-                        "content-Type": "application/json;odata=verbose"
-                    }
-                }).success(function(result) {
-                    deferred.resolve(result.d.GetContextWebInformation.WebFullUrl);
-                });
-            } else {
-                deferred.resolve(domain_url);
+            if (!angular.isUndefined(filters)) {
+                url += factoryUtil.build_filters(filters)
             }
 
-            return deferred.promise;
-        }
-
-        // HTTP GET
-        factoryUtil.getListItems = function(list_name, filters) {
             var deferred = $q.defer();
-            factoryUtil.getDomainURL().then(function(domain_url) {
-                var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
-
-                if (!angular.isUndefined(filters)) {
-                    url += factoryUtil.build_filters(filters)
+            $http({
+                url: url,
+                method: "GET",
+                headers: {
+                    "accept": "application/json;odata=verbose",
+                    "content-Type": "application/json;odata=verbose"
                 }
-
-                $http({
-                    url: url,
-                    method: "GET",
-                    headers: {
-                        "accept": "application/json;odata=verbose",
-                        "content-Type": "application/json;odata=verbose"
-                    }
-                }).success(function(result) {
-                    deferred.resolve(result.d.results);
-                }).error(function(result, status) {
-                    deferred.reject({
-                        error: result,
-                        status: status
-                    });
+            }).success(function(result) {
+                deferred.resolve(result.d.results);
+            }).error(function(result, status) {
+                deferred.reject({
+                    error: result,
+                    status: status
                 });
             });
             return deferred.promise;
         };
 
         // HTTP Create
-        factoryUtil.createListItem = function(list_name, data) {
+        factoryUtil.createListItem = function(domain_url, list_name, data) {
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
@@ -85,7 +60,7 @@
         };
 
         // HTTP Update
-        factoryUtil.updateListItem = function(list_name, list_id, data) {
+        factoryUtil.updateListItem = function(domain_url, list_name, list_id, data) {
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
@@ -114,7 +89,7 @@
         };
 
         // HTTP Delete
-        factoryUtil.deleteListItem = function(list_name, list_id) {
+        factoryUtil.deleteListItem = function(domain_url, list_name, list_id) {
             var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
             var deferred = $q.defer();
             $http({

@@ -1,6 +1,18 @@
 # SharePoint REST with Angular
 This AngularJS service helps to create a list item, get items that are already created, update or delete an item from the list using functions that automatically builds REST API query. This service also has a filter builder which helps to build OData query for filtering and fetching desired items from the list.
 
+## Install
+
+### NPM
+```
+npm install sharepoint-rest
+```
+
+### Bower
+```
+bower install sharepoint-rest
+```
+
 ## Example
 
 ### Getting list items

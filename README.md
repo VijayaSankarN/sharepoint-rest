@@ -17,28 +17,45 @@ bower install sharepoint-rest
 
 ### Getting list items
 ```Javascript
-sharepointRESTService.getListItems(domain_url, 'list_name', filter).then(function(response) {
+sharepointRESTService.getListItems('list_name', filter).then(function(response) {
   console.log('Response :', response);
 });
 ```
 
 ### Creating a list item
 ```Javascript
-sharepointRESTService.createListItem(domain_url, 'list_name', data).then(function(response) {
+sharepointRESTService.createListItem('list_name', data).then(function(response) {
   console.log('Response :', response);
 });
 ```
 
 ### Updating a list item
 ```Javascript
-sharepointRESTService.updateListItem(domain_url, 'list_name', data.Id, data).then(function(response) {
+sharepointRESTService.updateListItem('list_name', data.Id, data).then(function(response) {
   console.log('Response :', response);
 });
 ```
 
 ### Deleting a list Item
 ```Javascript
-sharepointRESTService.updateListItem(domain_url, 'list_name', Id).then(function(response) {
+sharepointRESTService.updateListItem('list_name', Id).then(function(response) {
   console.log('Response :', response);
 });
+```
+
+### Building filters
+Following keys can be used to build OData query:
+```Javascript
+var filter = {
+    select: ['field_name', 'id'],
+    expand: {
+        'list_name': ['field_name1', 'field_name2']
+    },
+    orderby: 'field_name asc/desc',
+    filter: {
+        'field_name': ['lt/gt/eq/ne', 'value']
+    },
+    top : 5,
+    skip : 5
+};
 ```

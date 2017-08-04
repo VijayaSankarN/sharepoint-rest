@@ -5,107 +5,156 @@
     function sharepointRESTService($q, $http) {
         var factoryUtil = {};
 
-        // HTTP GET
-        factoryUtil.getListItems = function(domain_url, list_name, filters) {
-            var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
+        // Get domain URL automatically
+        factoryUtil.getDomainURL = function() {
+            var deferred = $q.defer();
 
-            if (!angular.isUndefined(filters)) {
-                url += factoryUtil.build_filters(filters)
+            var US_SP_data = {};
+            US_SP_data.domain_url = sessionStorage.getItem('US_SPDomainUrl');
+            US_SP_data.form_digest = sessionStorage.getItem('US_SPFormDigest');
+
+            if(US_SP_data.domain_url == null || US_SP_data.form_digest == null) {
+                $http({
+                    url: "_api/contextinfo",
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    US_SP_data.domain_url = result.d.GetContextWebInformation.WebFullUrl;
+                    US_SP_data.form_digest = result.d.GetContextWebInformation.FormDigestValue;
+                    sessionStorage.setItem('US_SPDomainUrl', US_SP_data.domain_url);
+                    sessionStorage.setItem('US_SPFormDigest', US_SP_data.form_digest);
+                    deferred.resolve(US_SP_data);
+                });
+            } else {
+                deferred.resolve(US_SP_data);
             }
 
+            return deferred.promise;
+        }
+
+        // HTTP GET
+        factoryUtil.getListItems = function(list_name, filters) {
             var deferred = $q.defer();
-            $http({
-                url: url,
-                method: "GET",
-                headers: {
-                    "accept": "application/json;odata=verbose",
-                    "content-Type": "application/json;odata=verbose"
+            factoryUtil.getDomainURL().then(function(US_SP_data) {
+                var domain_url = US_SP_data.domain_url;
+                var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
+
+                if (!angular.isUndefined(filters)) {
+                    url += factoryUtil.build_filters(filters)
                 }
-            }).success(function(result) {
-                deferred.resolve(result.d.results);
-            }).error(function(result, status) {
-                deferred.reject({
-                    error: result,
-                    status: status
+
+                $http({
+                    url: url,
+                    method: "GET",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result.d.results);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
                 });
             });
             return deferred.promise;
         };
 
         // HTTP Create
-        factoryUtil.createListItem = function(domain_url, list_name, data) {
+        factoryUtil.createListItem = function(list_name, data) {
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
-            var url = domain_url + "/_api/web/lists/getbytitle('" + list_name + "')/Items";
+
             var deferred = $q.defer();
-            $http({
-                url: url,
-                method: "POST",
-                headers: {
-                    "accept": "application/json;odata=verbose",
-                    "X-RequestDigest": activeUser.getFormDigestValue(),
-                    "content-Type": "application/json;odata=verbose"
-                },
-                data: JSON.stringify(data)
-            }).success(function(result) {
-                deferred.resolve(result);
-            }).error(function(result, status) {
-                deferred.reject({
-                    error: result,
-                    status: status
+            factoryUtil.getDomainURL().then(function(US_SP_data) {
+                var domain_url = US_SP_data.domain_url;
+                var form_digest = US_SP_data.form_digest;
+                var url = domain_url + "/_api/web/lists/getbytitle('" + list_name + "')/Items";
+
+                $http({
+                    url: url,
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "content-Type": "application/json;odata=verbose"
+                    },
+                    data: JSON.stringify(data)
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
                 });
             });
             return deferred.promise;
         };
 
         // HTTP Update
-        factoryUtil.updateListItem = function(domain_url, list_name, list_id, data) {
+        factoryUtil.updateListItem = function(list_name, list_id, data) {
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
-            var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
             var deferred = $q.defer();
-            $http({
-                url: url,
-                method: "POST",
-                headers: {
-                    "accept": "application/json;odata=verbose",
-                    "X-RequestDigest": activeUser.getFormDigestValue(),
-                    "content-Type": "application/json;odata=verbose",
-                    "X-HTTP-Method": "MERGE",
-                    "If-Match": "*"
-                },
-                data: data
-            }).success(function(result) {
-                deferred.resolve(result);
-            }).error(function(result, status) {
-                deferred.reject({
-                    error: result,
-                    status: status
+            factoryUtil.getDomainURL().then(function(US_SP_data) {
+                var domain_url = US_SP_data.domain_url;
+                var form_digest = US_SP_data.form_digest;
+                var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+
+                $http({
+                    url: url,
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "content-Type": "application/json;odata=verbose",
+                        "X-HTTP-Method": "MERGE",
+                        "If-Match": "*"
+                    },
+                    data: data
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
                 });
             });
             return deferred.promise;
         };
 
         // HTTP Delete
-        factoryUtil.deleteListItem = function(domain_url, list_name, list_id) {
-            var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+        factoryUtil.deleteListItem = function(list_name, list_id) {
             var deferred = $q.defer();
-            $http({
-                url: url,
-                method: "DELETE",
-                headers: {
-                    "accept": "application/json;odata=verbose",
-                    "X-RequestDigest": activeUser.getFormDigestValue(),
-                    "IF-MATCH": "*"
-                }
-            }).success(function(result) {
-                deferred.resolve(result);
-            }).error(function(result, status) {
-                deferred.reject({
-                    error: result,
-                    status: status
+            factoryUtil.getDomainURL().then(function(US_SP_data) {
+                var domain_url = US_SP_data.domain_url;
+                var form_digest = US_SP_data.form_digest;
+                var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+
+                $http({
+                    url: url,
+                    method: "DELETE",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "IF-MATCH": "*"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
                 });
             });
             return deferred.promise;

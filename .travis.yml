@@ -6,9 +6,9 @@ addons:
     token:
       secure: "uBFUOWyILNvn0EOoUAwPY/5846e+sndg3Bu2PBgxy+IG6d3tm1yMjAX97VPz8W7BjL+g2TWBpQ/Pn6cv89mWWAuTYnYpkD9d5GvQsDRPGOSE+jOUcuiD0GQyc3zSJNzBtbN9GYb6soUl9Nue03bNYCIKIKE1QGcWCdsorq7EiMsqv9Y2DEsxX1da0dibrznciXaS4N7c3PbsIwZN1s84QaTjBg8Osnjr8aaXoiDXPTU0bHxDXQK4VXvKxUGsD6rZHEe5Or/V+1tZB5CV560TRzIjbgSLFKCRAYAt3N6XZY3t5V9VnkZdFTytqpfEIR+KXltNVy/We7U4dpzKgdEQJRmeALSSU1HPah9cO7WuGp2Ht/SyT7NJOBhFL59ijSDoZLT1cyjRdWVE9emFKetfW3ifA9NqonXTa0WjFV9ZLcpsmcinQkcx1Daxa27osdQoP7bIr5/udbhqg5fE8TkNeBSM4NB0sD2Gm84Pak4dooCpTzBNqJgIEoGRzlMawvZ4ytZxSQbrh486KROfTk7ZaLLM+4iqD5TyNdm6dPnGoW8ogULwpIrprkxj/R9kf06yMNMO+UdWVQmX5U47uUd3Hl0wSjzw6/ik3RIWIRUkVCe2pkap0cDdtKQWm5cAPF7I/mO4HCFIwtiKVjLcH+oLapPLGj2yh3aDgRTsVlN8q5I="
 jdk:
-- oraclejdk8
+  - oraclejdk8
 script:
-- sonar-scanner
+  - sonar-scanner
 cache:
   directories:
   - "$HOME/.sonar/cache"

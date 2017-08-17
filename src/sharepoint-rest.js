@@ -31,7 +31,6 @@
         // Get URL and Form Digest Value
         factoryUtil.getSPData = function() {
             var deferred = $q.defer();
-
             var SP_data = {};
             SP_data.site_url = sessionStorage.getItem('SPSiteUrl');
             SP_data.form_digest = sessionStorage.getItem('SPFormDigest');
@@ -50,7 +49,6 @@
         // Get Site URL
         factoryUtil.getSiteURL = function() {
             var deferred = $q.defer();
-
             var site_url = sessionStorage.getItem('SPSiteUrl');
 
             if(site_url == null || $location.absUrl().indexOf(site_url) < 0) {
@@ -67,7 +65,6 @@
         // Get Form Digest Value
         factoryUtil.getFormDigestValue = function() {
             var deferred = $q.defer();
-
             var form_digest = sessionStorage.getItem('SPFormDigest');
 
             if(form_digest == null) {
@@ -177,6 +174,7 @@
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
+
             var deferred = $q.defer();
             factoryUtil.getSPData().then(function(SP_data) {
                 var site_url = SP_data.site_url;
@@ -236,7 +234,7 @@
 
         // Generate List Name
         factoryUtil.getListName = function(name) {
-            return "SP.Data." + name.charAt(0).toUpperCase() + name.replace('_', '_x005f_').replace(' ', '').slice(1) + "ListItem";
+            return "SP.Data." + name.charAt(0).toUpperCase() + name.split('_').join('_x005f_').split(' ').join('').slice(1) + "ListItem";
         };
 
         // Build filters

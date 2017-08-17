@@ -21,6 +21,18 @@ npm install sharepoint-rest
 bower install sharepoint-rest
 ```
 
+## Available Methods
+
+| Method | Purpose |
+|--------|---------|
+| `getListItems` | Get items from lists |
+| `createListItem` | Create a new list item |
+| `updateListItem` | Update an existing list item |
+| `deleteListItem` | Delete an existing list item |
+| `getFromURL` | Get response from the provided API URL |
+| `getSiteURL` | Get the base URL of the site or sub-site |
+| `getFormDigestValue` | Get the Form Digest Value for that session |
+
 ## Example
 
 ### Getting list items
@@ -46,7 +58,15 @@ sharepointRESTService.updateListItem('list_name', data.Id, data).then(function(r
 
 ### Deleting a list Item
 ```Javascript
-sharepointRESTService.updateListItem('list_name', Id).then(function(response) {
+sharepointRESTService.deleteListItem('list_name', Id).then(function(response) {
+  console.log('Response :', response);
+});
+```
+
+### Getting from a URL
+```Javascript
+var url = "/_api/contextinfo";
+sharepointRESTService.getFromURL(url).then(function(response) {
   console.log('Response :', response);
 });
 ```

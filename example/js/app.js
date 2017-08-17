@@ -12,6 +12,8 @@ angular.module('myApp', ['sharepoint.rest'])
     email: 'sankar.animation@gmail.com'
   }
 
+  var url = "/_api/contextinfo";
+
   // Getting list items
   sharepointRESTService.getListItems('list_name', filter).then(function(response) {
     console.log('Response :', response);
@@ -28,7 +30,12 @@ angular.module('myApp', ['sharepoint.rest'])
   });
 
   // Deleting a list Item
-  sharepointRESTService.updateListItem('list_name', Id).then(function(response) {
+  sharepointRESTService.deleteListItem('list_name', Id).then(function(response) {
+    console.log('Response :', response);
+  });
+
+  // Getting response from a URL
+  sharepointRESTService.getFromURL(url).then(function(response) {
     console.log('Response :', response);
   });
 

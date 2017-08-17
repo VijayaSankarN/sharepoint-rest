@@ -1,4 +1,12 @@
 # SharePoint REST with Angular
+
+[![Build status](https://api.travis-ci.org/VijayaSankarN/sharepoint-rest.svg?branch=master)](https://travis-ci.org/VijayaSankarN/sharepoint-rest) 
+[![Quality Gate](https://sonarcloud.io/api/badges/gate?key=sharepoint-rest)](https://sonarcloud.io/dashboard/index/sharepoint-rest)
+[![npm version](https://badge.fury.io/js/sharepoint-rest.svg)](https://badge.fury.io/js/sharepoint-rest)
+[![Bower version](https://badge.fury.io/bo/sharepoint-rest.svg)](https://badge.fury.io/bo/sharepoint-rest)
+[![Downloads](https://img.shields.io/npm/dm/sharepoint-rest.svg)](https://www.npmjs.com/package/sharepoint-rest)
+[![Total Downloads](https://img.shields.io/npm/dt/sharepoint-rest.svg)](https://www.npmjs.com/package/sharepoint-rest)
+
 This AngularJS service helps to create a list item, get items that are already created, update or delete an item from the list using functions that automatically builds REST API query. This service also has a filter builder which helps to build OData query for filtering and fetching desired items from the list.
 
 ## Install
@@ -12,6 +20,18 @@ npm install sharepoint-rest
 ```
 bower install sharepoint-rest
 ```
+
+## Available Methods
+
+| Method | Purpose |
+|--------|---------|
+| `getListItems` | Get items from lists |
+| `createListItem` | Create a new list item |
+| `updateListItem` | Update an existing list item |
+| `deleteListItem` | Delete an existing list item |
+| `getFromURL` | Get response from the provided API URL |
+| `getSiteURL` | Get the base URL of the site or sub-site |
+| `getFormDigestValue` | Get the Form Digest Value for that session |
 
 ## Example
 
@@ -38,7 +58,15 @@ sharepointRESTService.updateListItem('list_name', data.Id, data).then(function(r
 
 ### Deleting a list Item
 ```Javascript
-sharepointRESTService.updateListItem('list_name', Id).then(function(response) {
+sharepointRESTService.deleteListItem('list_name', Id).then(function(response) {
+  console.log('Response :', response);
+});
+```
+
+### Getting from a URL
+```Javascript
+var url = "/_api/contextinfo";
+sharepointRESTService.getFromURL(url).then(function(response) {
   console.log('Response :', response);
 });
 ```

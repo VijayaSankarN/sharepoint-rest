@@ -1,49 +1,123 @@
 (function() {
     angular.module('sharepoint.rest', []).factory('sharepointRESTService', sharepointRESTService)
-    sharepointRESTService.$inject = ['$q', '$http'];
+    sharepointRESTService.$inject = ['$q', '$http', '$location'];
 
-    function sharepointRESTService($q, $http) {
+    function sharepointRESTService($q, $http, $location) {
         var factoryUtil = {};
 
-        // Get domain URL automatically
-        factoryUtil.getDomainURL = function() {
+        // Generate URL and Form Digest Value
+        factoryUtil.generateSPData = function() {
             var deferred = $q.defer();
 
-            var US_SP_data = {};
-            US_SP_data.domain_url = sessionStorage.getItem('US_SPDomainUrl');
-            US_SP_data.form_digest = sessionStorage.getItem('US_SPFormDigest');
+            $http({
+                url: "_api/contextinfo",
+                method: "POST",
+                headers: {
+                    "accept": "application/json;odata=verbose",
+                    "content-Type": "application/json;odata=verbose"
+                }
+            }).success(function(result) {
+                var SP_data = {};
+                SP_data.site_url = result.d.GetContextWebInformation.WebFullUrl;
+                SP_data.form_digest = result.d.GetContextWebInformation.FormDigestValue;
+                sessionStorage.setItem('SPSiteUrl', SP_data.site_url);
+                sessionStorage.setItem('SPFormDigest', SP_data.form_digest);
+                deferred.resolve(SP_data);
+            });
 
-            if(US_SP_data.domain_url == null || US_SP_data.form_digest == null) {
-                $http({
-                    url: "_api/contextinfo",
-                    method: "POST",
-                    headers: {
-                        "accept": "application/json;odata=verbose",
-                        "content-Type": "application/json;odata=verbose"
-                    }
-                }).success(function(result) {
-                    US_SP_data.domain_url = result.d.GetContextWebInformation.WebFullUrl;
-                    US_SP_data.form_digest = result.d.GetContextWebInformation.FormDigestValue;
-                    sessionStorage.setItem('US_SPDomainUrl', US_SP_data.domain_url);
-                    sessionStorage.setItem('US_SPFormDigest', US_SP_data.form_digest);
-                    deferred.resolve(US_SP_data);
+            return deferred.promise;
+        }
+
+        // Get URL and Form Digest Value
+        factoryUtil.getSPData = function() {
+            var deferred = $q.defer();
+
+            var SP_data = {};
+            SP_data.site_url = sessionStorage.getItem('SPSiteUrl');
+            SP_data.form_digest = sessionStorage.getItem('SPFormDigest');
+
+            if(SP_data.site_url == null || SP_data.form_digest == null || $location.absUrl().indexOf(SP_data.site_url) < 0) {
+                factoryUtil.generateSPData().then(function(SP_data) {
+                    deferred.resolve(SP_data);
                 });
             } else {
-                deferred.resolve(US_SP_data);
+                deferred.resolve(SP_data);
             }
 
             return deferred.promise;
         }
 
-        // HTTP GET
-        factoryUtil.getListItems = function(list_name, filters) {
+        // Get Site URL
+        factoryUtil.getSiteURL = function() {
             var deferred = $q.defer();
-            factoryUtil.getDomainURL().then(function(US_SP_data) {
-                var domain_url = US_SP_data.domain_url;
-                var url = domain_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items?";
+
+            var site_url = sessionStorage.getItem('SPSiteUrl');
+
+            if(site_url == null || $location.absUrl().indexOf(site_url) < 0) {
+                factoryUtil.generateSPData().then(function(SP_data) {
+                    deferred.resolve(SP_data.site_url);
+                });
+            } else {
+                deferred.resolve(site_url);
+            }
+
+            return deferred.promise;
+        }
+
+        // Get Form Digest Value
+        factoryUtil.getFormDigestValue = function() {
+            var deferred = $q.defer();
+
+            var form_digest = sessionStorage.getItem('SPFormDigest');
+
+            if(form_digest == null) {
+                factoryUtil.generateSPData().then(function(SP_data) {
+                    deferred.resolve(SP_data.form_digest);
+                });
+            } else {
+                deferred.resolve(form_digest);
+            }
+
+            return deferred.promise;
+        }
+
+        // HTTP Get from URL
+        factoryUtil.getFromURL = function(get_url, filters) {
+            var deferred = $q.defer();
+            factoryUtil.getSiteURL().then(function(site_url) {
+                var url = site_url + get_url;
 
                 if (!angular.isUndefined(filters)) {
-                    url += factoryUtil.build_filters(filters)
+                    url += "?" + factoryUtil.build_filters(filters)
+                }
+
+                $http({
+                    url: url,
+                    method: "GET",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
+                });
+            });
+            return deferred.promise;
+        };
+
+        // HTTP Get
+        factoryUtil.getListItems = function(list_name, filters) {
+            var deferred = $q.defer();
+            factoryUtil.getSiteURL().then(function(site_url) {
+                var url = site_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items";
+
+                if (!angular.isUndefined(filters)) {
+                    url += "?" + factoryUtil.build_filters(filters)
                 }
 
                 $http({
@@ -72,10 +146,10 @@
             };
 
             var deferred = $q.defer();
-            factoryUtil.getDomainURL().then(function(US_SP_data) {
-                var domain_url = US_SP_data.domain_url;
-                var form_digest = US_SP_data.form_digest;
-                var url = domain_url + "/_api/web/lists/getbytitle('" + list_name + "')/Items";
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/web/lists/getbytitle('" + list_name + "')/Items";
 
                 $http({
                     url: url,
@@ -104,10 +178,10 @@
                 "type": factoryUtil.getListName(list_name)
             };
             var deferred = $q.defer();
-            factoryUtil.getDomainURL().then(function(US_SP_data) {
-                var domain_url = US_SP_data.domain_url;
-                var form_digest = US_SP_data.form_digest;
-                var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
 
                 $http({
                     url: url,
@@ -135,10 +209,10 @@
         // HTTP Delete
         factoryUtil.deleteListItem = function(list_name, list_id) {
             var deferred = $q.defer();
-            factoryUtil.getDomainURL().then(function(US_SP_data) {
-                var domain_url = US_SP_data.domain_url;
-                var form_digest = US_SP_data.form_digest;
-                var url = domain_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
 
                 $http({
                     url: url,

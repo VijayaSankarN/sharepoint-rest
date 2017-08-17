@@ -1,9 +1,9 @@
 # SharePoint REST with Angular
 
 [![Build status](https://api.travis-ci.org/VijayaSankarN/sharepoint-rest.svg?branch=master)](https://travis-ci.org/VijayaSankarN/sharepoint-rest) 
-[![Quality Gate](https://sonarcloud.io/api/badges/gate?key=sharepoint-rest)](https://sonarcloud.io/dashboard/index/sharepoint-rest)
+[![Code Smells](https://sonarcloud.io/api/badges/measure?key=sharepoint-rest&metric=code_smells)](https://sonarcloud.io/dashboard/index/sharepoint-rest)
+[![Bugs](https://sonarcloud.io/api/badges/measure?key=sharepoint-rest&metric=bugs)](https://sonarcloud.io/dashboard/index/sharepoint-rest)
 [![npm version](https://badge.fury.io/js/sharepoint-rest.svg)](https://badge.fury.io/js/sharepoint-rest)
-[![Bower version](https://badge.fury.io/bo/sharepoint-rest.svg)](https://badge.fury.io/bo/sharepoint-rest)
 [![Downloads](https://img.shields.io/npm/dm/sharepoint-rest.svg)](https://www.npmjs.com/package/sharepoint-rest)
 [![Total Downloads](https://img.shields.io/npm/dt/sharepoint-rest.svg)](https://www.npmjs.com/package/sharepoint-rest)
 

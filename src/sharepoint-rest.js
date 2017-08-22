@@ -81,6 +81,7 @@
         // HTTP Get from URL
         factoryUtil.getFromURL = function(get_url, filters) {
             var deferred = $q.defer();
+
             factoryUtil.getSiteURL().then(function(site_url) {
                 var url = site_url + get_url;
 
@@ -104,12 +105,14 @@
                     });
                 });
             });
+
             return deferred.promise;
         };
 
         // HTTP Get
         factoryUtil.getListItems = function(list_name, filters) {
             var deferred = $q.defer();
+
             factoryUtil.getSiteURL().then(function(site_url) {
                 var url = site_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items";
 
@@ -133,16 +136,17 @@
                     });
                 });
             });
+
             return deferred.promise;
         };
 
         // HTTP Create
-        factoryUtil.createListItem = function(list_name, data) {
+        factoryUtil.createListItem = function(list_name, data, def) {
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
+            var deferred = def || $q.defer();
 
-            var deferred = $q.defer();
             factoryUtil.getSPData().then(function(SP_data) {
                 var site_url = SP_data.site_url;
                 var form_digest = SP_data.form_digest;
@@ -160,22 +164,29 @@
                 }).success(function(result) {
                     deferred.resolve(result);
                 }).error(function(result, status) {
-                    deferred.reject({
-                        error: result,
-                        status: status
-                    });
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.createListItem(list_name, data, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
                 });
             });
+
             return deferred.promise;
         };
 
         // HTTP Update
-        factoryUtil.updateListItem = function(list_name, list_id, data) {
+        factoryUtil.updateListItem = function(list_name, list_id, data, def) {
             data.__metadata = {
                 "type": factoryUtil.getListName(list_name)
             };
+            var deferred = def || $q.defer();
 
-            var deferred = $q.defer();
             factoryUtil.getSPData().then(function(SP_data) {
                 var site_url = SP_data.site_url;
                 var form_digest = SP_data.form_digest;
@@ -195,18 +206,26 @@
                 }).success(function(result) {
                     deferred.resolve(result);
                 }).error(function(result, status) {
-                    deferred.reject({
-                        error: result,
-                        status: status
-                    });
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.updateListItem(list_name, list_id, data, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
                 });
             });
+
             return deferred.promise;
         };
 
         // HTTP Delete
-        factoryUtil.deleteListItem = function(list_name, list_id) {
-            var deferred = $q.defer();
+        factoryUtil.deleteListItem = function(list_name, list_id, def) {
+            var deferred = def || $q.defer();
+
             factoryUtil.getSPData().then(function(SP_data) {
                 var site_url = SP_data.site_url;
                 var form_digest = SP_data.form_digest;
@@ -223,12 +242,19 @@
                 }).success(function(result) {
                     deferred.resolve(result);
                 }).error(function(result, status) {
-                    deferred.reject({
-                        error: result,
-                        status: status
-                    });
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.deleteListItem(list_name, list_id, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
                 });
             });
+
             return deferred.promise;
         };
 

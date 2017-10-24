@@ -23,6 +23,10 @@
                 sessionStorage.setItem('SPSiteUrl', SP_data.site_url);
                 sessionStorage.setItem('SPFormDigest', SP_data.form_digest);
                 deferred.resolve(SP_data);
+            }).error(function() {
+                deferred.reject({
+                    error:'Failed to load sharepoint data - generateSPData'
+                });
             });
 
             return deferred.promise;
@@ -38,6 +42,10 @@
             if(SP_data.site_url == null || SP_data.form_digest == null || $location.absUrl().indexOf(SP_data.site_url) < 0) {
                 factoryUtil.generateSPData().then(function(SP_data) {
                     deferred.resolve(SP_data);
+                },function(){
+                    deferred.reject({
+                        error:'Failed to load sharepoint data - getSPData'
+                    });
                 });
             } else {
                 deferred.resolve(SP_data);
@@ -54,6 +62,10 @@
             if(site_url == null || $location.absUrl().indexOf(site_url) < 0) {
                 factoryUtil.generateSPData().then(function(SP_data) {
                     deferred.resolve(SP_data.site_url);
+                },function(){
+                    deferred.reject({
+                        error:'Failed to load sharepoint data - getSiteURL'
+                    });
                 });
             } else {
                 deferred.resolve(site_url);
@@ -70,6 +82,10 @@
             if(form_digest == null) {
                 factoryUtil.generateSPData().then(function(SP_data) {
                     deferred.resolve(SP_data.form_digest);
+                },function(){
+                    deferred.reject({
+                        error:'Failed to load sharepoint data - getFormDigestValue'
+                    });
                 });
             } else {
                 deferred.resolve(form_digest);
@@ -104,6 +120,10 @@
                         status: status
                     });
                 });
+            },function(){
+                deferred.reject({
+                    error:"Failed to load sharepoint data - getFromURL"
+                });
             });
 
             return deferred.promise;
@@ -134,6 +154,10 @@
                         error: result,
                         status: status
                     });
+                });
+            },function(){
+                deferred.reject({
+                    error:'Failed to load sharepoint data - getListItems'
                 });
             });
 
@@ -174,6 +198,10 @@
                             status: status
                         });
                     }
+                });
+            },function(){
+                deferred.reject({
+                    error:'Failed to load sharepoint data - createListItem'
                 });
             });
 
@@ -217,6 +245,10 @@
                         });
                     }
                 });
+            },function(){
+                deferred.reject({
+                    error:'Failed to load sharepoint data - updateListItem'
+                });
             });
 
             return deferred.promise;
@@ -252,6 +284,10 @@
                             status: status
                         });
                     }
+                });
+            },function(){
+                deferred.reject({
+                    error:'Failed to load sharepoint data - deleteListItems'
                 });
             });
 

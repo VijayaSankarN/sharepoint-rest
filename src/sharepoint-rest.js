@@ -1,128 +1,354 @@
-/**
- * Active User Factory
- *
- * User details to be maintained across the application
- *
- */
 (function() {
-    angular.module('app').factory('activeUser', activeUserFactory)
-    activeUserFactory.$inject = ['$http', '$window', '$filter', '$rootScope', '$state', 'sharepointRESTService'];
+    angular.module('sharepoint.rest', []).factory('sharepointRESTService', sharepointRESTService)
+    sharepointRESTService.$inject = ['$q', '$http', '$location'];
 
-    function activeUserFactory($http, $window, $filter, $rootScope, $state, SPService) {
-        var sharedInfo = {};
-        var url = {
-            api_activeUser: "/_api/web/currentUser?$expand=groups",
-            api_site_users: "/_api/web/siteUsers",
-        };
-        var defaultRoles = ["EM_Approvers", "EM_Managers", "EM_Administrators", "EM_Employees", "EM_Developers"];
-        sharedInfo.user = {};
+    function sharepointRESTService($q, $http, $location) {
+        var factoryUtil = {};
 
-        function successHandler(response, cb) {
-            var isDeveloper = false; // Developer flag
-            sharedInfo.all = response;
-            sharedInfo.user.groupsInfo = response.d.Groups.results; // User group
-            sharedInfo.user.title = response.d.Title; // User Name
-            sharedInfo.user.email = response.d.Email; // User Email
-            sharedInfo.user.activeRole = '';
-            sharedInfo.user.Id = response.d.Id;
-            sharedInfo.user.userGroup = [];
+        // Generate URL and Form Digest Value
+        factoryUtil.generateSPData = function() {
+            var deferred = $q.defer();
 
-            angular.forEach(sharedInfo.user.groupsInfo, function(value, key) {
-                var role = value['Title'];
-                if (defaultRoles.indexOf(role) != -1 && !isDeveloper) {
-                    switch (role) {
-                        case "EM_Developers":
-                            // Adding Approver and Manager role (Highest available)
-                            sharedInfo.user.userGroup = defaultRoles;
-                            sharedInfo.user.userGroup.splice(2);
-                            isDeveloper = true;
-                            break;
-                        case "EM_Employees":
-                            // When an employee has one reporter under him, he will be a manager then
-                            // Otherwise just an employee
-                            sharedInfo.user.userGroup.push(sharedInfo.all.isManager ? "EM_Managers" : role);
-                            break;
-                        default:
-                            sharedInfo.user.userGroup.push(role);
-                    }
+            $http({
+                url: "_api/contextinfo",
+                method: "POST",
+                headers: {
+                    "accept": "application/json;odata=verbose",
+                    "content-Type": "application/json;odata=verbose"
                 }
+            }).success(function(result) {
+                var SP_data = {};
+                SP_data.site_url = result.d.GetContextWebInformation.WebFullUrl;
+                SP_data.form_digest = result.d.GetContextWebInformation.FormDigestValue;
+                sessionStorage.setItem('SPSiteUrl', SP_data.site_url);
+                sessionStorage.setItem('SPFormDigest', SP_data.form_digest);
+                deferred.resolve(SP_data);
+            }).error(function() {
+                deferred.reject({
+                    error: "Failed to establish connection with SharePoint"
+                });
             });
-            // Remove Administrator role when the user has approver role assigned to them
-            if (sharedInfo.user.userGroup.indexOf("EM_Approvers") != -1 && sharedInfo.user.userGroup.indexOf("EM_Administrators") != -1) {
-                sharedInfo.user.userGroup.splice(sharedInfo.user.userGroup.indexOf("EM_Administrators"), 1);
-            }
-            if (sessionStorage.EM_activeRole && sessionStorage.EM_activeEmail == sharedInfo.user.email && sharedInfo.user.userGroup.indexOf(sessionStorage.EM_activeRole) !== -1) {
-                sharedInfo.user.activeRole = sessionStorage.EM_activeRole;
+
+            return deferred.promise;
+        }
+
+        // Get URL and Form Digest Value
+        factoryUtil.getSPData = function() {
+            var deferred = $q.defer();
+            var SP_data = {};
+            SP_data.site_url = sessionStorage.getItem('SPSiteUrl');
+            SP_data.form_digest = sessionStorage.getItem('SPFormDigest');
+
+            if(SP_data.site_url == null || SP_data.form_digest == null || $location.absUrl().indexOf(SP_data.site_url) < 0) {
+                factoryUtil.generateSPData().then(function(SP_data) {
+                    deferred.resolve(SP_data);
+                }, function(e) {
+                    deferred.reject({
+                        error: e.error ? e.error : "Failed to fetch SharePoint data"
+                    });
+                });
             } else {
-                sharedInfo.user.activeRole = sharedInfo.user.userGroup.length > 0 ? sharedInfo.user.userGroup[0] : '';
+                deferred.resolve(SP_data);
             }
-            // User has no roles
-            if (sharedInfo.user.userGroup.length == 0) {
-                sharedInfo.user = null;
-            }
-            if (cb) cb();
+
+            return deferred.promise;
         }
-        sharedInfo.getData = function(cb, errorCb) {
-            SPService.getFromURL(url.api_activeUser).then(function(activeUserResponse) {
-                var filter = {
-                    top: 1,
-                    filter: {
-                        'reportsTo': ['eq', activeUserResponse.d.Id],
-                        'active': ['eq', 1]
-                    },
-                    expand: {
-                        'employee':['Id', 'Title', 'Name'],
-                    }
-                };
-                SPService.getListItems('employees', filter).then(function(employeeResponse) {
-                    activeUserResponse.isManager = false;
-                    if (employeeResponse.length) {
-                        activeUserResponse.isManager = true;
-                        activeUserResponse.employees = employeeResponse;
-                    }
-                    successHandler(activeUserResponse, cb);
-                },function(er){
-                console.log(er);
-                    errorCb();
+
+        // Get Site URL
+        factoryUtil.getSiteURL = function() {
+            var deferred = $q.defer();
+            var site_url = sessionStorage.getItem('SPSiteUrl');
+
+            if(site_url == null || $location.absUrl().indexOf(site_url) < 0) {
+                factoryUtil.generateSPData().then(function(SP_data) {
+                    deferred.resolve(SP_data.site_url);
+                }, function(e) {
+                    deferred.reject({
+                        error: e.error ? e.error : "Failed to fetch SharePoint URL"
+                    });
                 });
-            },function(er){
-                console.log(er);
-                errorCb();
-            });
+            } else {
+                deferred.resolve(site_url);
+            }
+
+            return deferred.promise;
         }
-        sharedInfo.getSiteUsers = function() {
-            var filter = {
-                select: ['Id', 'Email', 'Title']
+
+        // Get Form Digest Value
+        factoryUtil.getFormDigestValue = function() {
+            var deferred = $q.defer();
+            var form_digest = sessionStorage.getItem('SPFormDigest');
+
+            if(form_digest == null) {
+                factoryUtil.generateSPData().then(function(SP_data) {
+                    deferred.resolve(SP_data.form_digest);
+                }, function(e) {
+                    deferred.reject({
+                        error: e.error ? e.error : "Failed to fetch SharePoint FormDigestValue"
+                    });
+                });
+            } else {
+                deferred.resolve(form_digest);
+            }
+
+            return deferred.promise;
+        }
+
+        // HTTP Get from URL
+        factoryUtil.getFromURL = function(get_url, filters) {
+            var deferred = $q.defer();
+
+            factoryUtil.getSiteURL().then(function(site_url) {
+                var url = site_url + get_url;
+
+                if (!angular.isUndefined(filters)) {
+                    url += "?" + factoryUtil.build_filters(filters)
+                }
+
+                $http({
+                    url: url,
+                    method: "GET",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
+                });
+            }, function(e) {
+                deferred.reject({
+                    error: e.error
+                });
+            });
+
+            return deferred.promise;
+        };
+
+        // HTTP Get
+        factoryUtil.getListItems = function(list_name, filters) {
+            var deferred = $q.defer();
+
+            factoryUtil.getSiteURL().then(function(site_url) {
+                var url = site_url + "/_api/web/lists/GetByTitle('" + list_name + "')/Items";
+
+                if (!angular.isUndefined(filters)) {
+                    url += "?" + factoryUtil.build_filters(filters)
+                }
+
+                $http({
+                    url: url,
+                    method: "GET",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "content-Type": "application/json;odata=verbose"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result.d.results);
+                }).error(function(result, status) {
+                    deferred.reject({
+                        error: result,
+                        status: status
+                    });
+                });
+            }, function(e) {
+                deferred.reject({
+                    error: e.error
+                });
+            });
+
+            return deferred.promise;
+        };
+
+        // HTTP Create
+        factoryUtil.createListItem = function(list_name, data, def) {
+            data.__metadata = {
+                "type": factoryUtil.getListName(list_name)
             };
-            SPService.getFromURL(url.api_site_users, filter).then(function(response) {
-                sharedInfo.siteUsers = response.d.results;
-                sharedInfo.siteUsers.keys = {};
-                angular.forEach(sharedInfo.siteUsers, function(value, key) {
-                    sharedInfo.siteUsers.keys[value.Id] = value.Title;
+            var deferred = def || $q.defer();
+
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/web/lists/getbytitle('" + list_name + "')/Items";
+
+                $http({
+                    url: url,
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "content-Type": "application/json;odata=verbose"
+                    },
+                    data: JSON.stringify(data)
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.createListItem(list_name, data, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
+                });
+            }, function(e) {
+                deferred.reject({
+                    error: e.error
                 });
             });
+
+            return deferred.promise;
+        };
+
+        // HTTP Update
+        factoryUtil.updateListItem = function(list_name, list_id, data, def) {
+            data.__metadata = {
+                "type": factoryUtil.getListName(list_name)
+            };
+            var deferred = def || $q.defer();
+
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+
+                $http({
+                    url: url,
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "content-Type": "application/json;odata=verbose",
+                        "X-HTTP-Method": "MERGE",
+                        "If-Match": "*"
+                    },
+                    data: data
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.updateListItem(list_name, list_id, data, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
+                });
+            }, function(e) {
+                deferred.reject({
+                    error: e.error
+                });
+            });
+
+            return deferred.promise;
+        };
+
+        // HTTP Delete
+        factoryUtil.deleteListItem = function(list_name, list_id, def) {
+            var deferred = def || $q.defer();
+
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/Web/Lists/getByTitle('" + list_name + "')/Items(" + list_id + ")";
+
+                $http({
+                    url: url,
+                    method: "DELETE",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "IF-MATCH": "*"
+                    }
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.deleteListItem(list_name, list_id, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
+                });
+            }, function(e) {
+                deferred.reject({
+                    error: e.error
+                });
+            });
+
+            return deferred.promise;
+        };
+
+        // Generate List Name
+        factoryUtil.getListName = function(name) {
+            return "SP.Data." + name.charAt(0).toUpperCase() + name.split('_').join('_x005f_').split(' ').join('').slice(1) + "ListItem";
+        };
+
+        // Build filters
+        factoryUtil.build_filters = function(filters) {
+            var url_filter = [];
+            url_filter[0] = []; // select
+            url_filter[1] = []; // orderby
+            url_filter[2] = []; // top
+            url_filter[3] = []; // skip
+            url_filter[4] = []; // filter And
+            url_filter[5] = []; // expand
+            url_filter[6] = []; // filter Or
+            var url = [];
+            if (!angular.isUndefined(filters.select)) {
+                url_filter[0].push(filters.select.join());
+            }
+            if (!angular.isUndefined(filters.expand)) {
+                angular.forEach(filters.expand, function(columns, field) {
+                    angular.forEach(columns, function(value, key) {
+                        url_filter[0].push(field + '/' + value);
+                    });
+                    url_filter[5].push(field);
+                });
+                url_filter[5] = '$expand=' + url_filter[5].join();
+            }
+            if (!angular.isUndefined(filters.orderby)) {
+                url_filter[1] = '$orderby=' + filters.orderby;
+            }
+            if (!angular.isUndefined(filters.top)) {
+                url_filter[2] = '$top=' + filters.top;
+            }
+            if (!angular.isUndefined(filters.skip)) {
+                url_filter[3] = '$skip=' + filters.skip;
+            }
+            if (!angular.isUndefined(filters.filter)) {
+                angular.forEach(filters.filter, function(value, field) {
+                    url_filter[4].push('(' + field + ' ' + value[0] + ' \'' + value[1] + '\')');
+                });
+                url_filter[4] = '$filter=(' + url_filter[4].join(' and ') + ')';
+            }
+            if (!angular.isUndefined(filters.filterOr)) {
+                angular.forEach(filters.filterOr, function(value, field) {
+                    url_filter[6].push('(' + field + ' ' + value[0] + ' \'' + value[1] + '\')');
+                });
+                url_filter[6] = '$filter=(' + url_filter[6].join(' or ') + ')';
+            }
+            if (url_filter[0].length) url_filter[0] = '$select=' + url_filter[0].join();
+            angular.forEach(url_filter, function(value, key) {
+                if (url_filter[key].length) url.push(value);
+            });
+            return url.join('&');
         }
-        sharedInfo.getUserName = function() {
-            return sharedInfo.user.title;
-        }
-        sharedInfo.getUserId = function() {
-            return sharedInfo.user.Id;
-        }
-        sharedInfo.getUserEmail = function() {
-            return sharedInfo.user.email;
-        }
-        sharedInfo.getUserGroup = function() {
-            return sharedInfo.user.userGroup;
-        }
-        sharedInfo.getEmployees = function() {
-            return sharedInfo.all.employees;
-        }
-        sharedInfo.setActiveRole = function(role) {
-            sharedInfo.user.activeRole = role;
-        }
-        sharedInfo.getActiveRole = function() {
-            return sharedInfo.user.activeRole;
-        }
-        return sharedInfo;
+        return factoryUtil;
     }
 })()

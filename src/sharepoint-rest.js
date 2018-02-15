@@ -294,6 +294,89 @@
             return deferred.promise;
         };
 
+        // Send Email
+        factoryUtil.sendEmail = function(emailObj, def) {
+            var data = {
+                'properties': {
+                    '__metadata': {
+                        'type': 'SP.Utilities.EmailProperties'
+                    },
+                    'To': {
+                        results : []
+                    },
+                    'CC': {
+                        results : []
+                    },
+                    'BCC': {
+                        results : []
+                    },
+                    'Subject': emailObj.subject,
+                    'Body': emailObj.body
+                }
+            }
+            var deferred = def || $q.defer();
+
+            if(angular.isDefined(emailObj.to)) {
+                if(Array.isArray(emailObj.to)) {
+                    data.properties.To.results = emailObj.to;
+                } else {
+                    data.properties.To.results = [emailObj.to];
+                }
+            }
+
+            if(angular.isDefined(emailObj.cc)) {
+                if(Array.isArray(emailObj.cc)) {
+                    data.properties.CC.results = emailObj.cc;
+                } else {
+                    data.properties.CC.results = [emailObj.cc];
+                }
+            }
+
+            if(angular.isDefined(emailObj.bcc)) {
+                if(Array.isArray(emailObj.bcc)) {
+                    data.properties.BCC.results = emailObj.bcc;
+                } else {
+                    data.properties.BCC.results = [emailObj.bcc];
+                }
+            }
+
+            factoryUtil.getSPData().then(function(SP_data) {
+                var site_url = SP_data.site_url;
+                var form_digest = SP_data.form_digest;
+                var url = site_url + "/_api/SP.Utilities.Utility.SendEmail";
+
+                $http({
+                    url: url,
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json;odata=verbose",
+                        "X-RequestDigest": form_digest,
+                        "content-Type": "application/json;odata=verbose"
+                    },
+                    data: JSON.stringify(data)
+                }).success(function(result) {
+                    deferred.resolve(result);
+                }).error(function(result, status) {
+                    if(status == 403) {
+                        factoryUtil.generateSPData().then(function() {
+                            factoryUtil.sendEmail(emailObj, deferred);
+                        });
+                    } else {
+                        deferred.reject({
+                            error: result,
+                            status: status
+                        });
+                    }
+                });
+            }, function(e) {
+                deferred.reject({
+                    error: e.error
+                });
+            });
+
+            return deferred.promise;
+        }
+
         // Generate List Name
         factoryUtil.getListName = function(name) {
             return "SP.Data." + name.charAt(0).toUpperCase() + name.split('_').join('_x005f_').split(' ').join('').slice(1) + "ListItem";

@@ -10,7 +10,7 @@ angular.module('myApp', ['sharepoint.rest'])
     Id: 1,
     name: 'James',
     email: 'sankar.animation@gmail.com'
-  }
+  };
 
   var url = "/_api/contextinfo";
 
@@ -38,5 +38,14 @@ angular.module('myApp', ['sharepoint.rest'])
   sharepointRESTService.getFromURL(url).then(function(response) {
     console.log('Response :', response);
   });
+
+  // Sending Email
+  var emailObj = {
+    to: 'sankar.animation@gmail.com',
+    subject: 'Test Email',
+    body: 'This is a test email.'
+  };
+
+  sharepointRESTService.sendEmail(emailObj);
 
 });

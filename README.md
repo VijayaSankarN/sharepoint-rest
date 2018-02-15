@@ -71,6 +71,22 @@ sharepointRESTService.getFromURL(url).then(function(response) {
 });
 ```
 
+### Sending Email
+```Javascript
+sharepointRESTService.sendEmail(emailObj);
+```
+
+`emailObj` can hold following keys:
+1. to 
+2. cc
+3. bcc
+4. subject
+5. body
+
+***Note:*** `to`, `cc`, `bcc` keys can be hold 
+- string value like `sankar.animation@gmail.com`
+- array value like `[sankar.animation@gmail.com, sankar.animation@hotmail.com]`
+
 ### Building filters
 Following keys can be used to build OData query:
 ```Javascript

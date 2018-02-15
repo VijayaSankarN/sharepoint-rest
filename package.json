@@ -1,6 +1,6 @@
 {
   "name": "sharepoint-rest",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "Angular service for accessing SharePoint Lists using REST API",
   "main": "src/sharepoint-rest.js",
   "repository": {
